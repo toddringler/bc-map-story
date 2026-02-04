@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Full Track -- Arctic Adventure 2025</title>
+<meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no">
+<link href="https://api.mapbox.com/mapbox-gl-js/v3.17.0-beta.1/mapbox-gl.css" rel="stylesheet">
+<script src="https://api.mapbox.com/mapbox-gl-js/v3.17.0-beta.1/mapbox-gl.js"></script>
+<style>
+body { margin: 0; padding: 0; }
+#map { position: absolute; top: 0; bottom: 0; width: 100%; }
+</style>
+</head>
+<body>
+<style type="text/css">
+    #info {
+        display: block;
+        position: relative;
+        margin: 0px auto;
+        width: 50%;
+        padding: 10px;
+        border: none;
+        border-radius: 3px;
+        font-size: 12px;
+        text-align: center;
+        color: #222;
+        background: #fff;
+    }
+</style>
+<div id="map"></div>
+<script>
+    mapboxgl.accessToken = 'pk.eyJ1IjoidGFjby1vdmVybGFuZGVyIiwiYSI6ImNtaGM0dWs1YzJlbmEya29lYThsa25keXgifQ.jx_k5uD2P2RuUXw5Ak0mUg';
+    const map = new mapboxgl.Map({
+        container: 'map',
+        // Choose from Mapbox's core styles, or make your own style with Mapbox Studio
+        style: 'mapbox://styles/mapbox/standard',
+        center: [-129.0, 59.0],
+        zoom: 3.8
+    });
+    //document.getElementById('info').innerHTML = "This is a title"
+    let hoveredPolygonId = null;
+    let mapMarkers = []
+    let start_loc = [0, 0];
+    let end_loc = [0, 0];
+    const popup_name = 'temp'
+
+    map.on('load', () => {
+        map.addSource('chapter-1', {
+            'type': 'geojson',
+            'data': './tracks/full-track-2025.geojson'
+        });
+
+        // add tracks and allow for hover effects to color, opacity, and width
+        map.addLayer({
+            'id': 'tracks',
+            'type': 'line',
+            'source': 'chapter-1',
+            'layout': {},
+            'paint': {
+                'line-color': [
+                    'case',
+                    ['boolean', ['feature-state', 'hover'], false],
+                    'red',
+                    'black'
+                ],
+                'line-opacity': [
+                    'case',
+                    ['boolean', ['feature-state', 'hover'], false],
+                    1.0,
+                    0.6
+                ],
+                'line-width': [
+                    'case',
+                    ['boolean', ['feature-state', 'hover'], false],
+                    8,
+                    5
+                ]
+            }
+        });
+
+        // Create the popup UI, but don't add it to the map yet.
+        // You only want the UI to appear once the cursor is hovering over an element.
+        const popup = new mapboxgl.Popup({
+            closeButton: false,
+            closeOnClick: false,
+            offset: [20, -20]
+        });
+
+        // When the user moves their mouse over the tracks layer, we'll update the
+        // feature state for the track under the mouse.
+        map.on('mousemove', 'tracks', (e) => {
+            if (e.features.length > 0) {
+                if (hoveredPolygonId !== null) {
+                    map.setFeatureState(
+                        { source: 'chapter-1', id: hoveredPolygonId },
+                        { hover: false }
+                    );
+                }
+                hoveredPolygonId = e.features[0].id;
+
+                // determine if feature is MultiLineString or LineString
+                const geometryType = e.features[0].geometry.type;
+                console.log("Geometry Type:", geometryType);
+
+                const camp_start_lon = e.features[0].properties.camp_start_lon
+                const camp_start_lat = e.features[0].properties.camp_start_lat
+                const camp_end_lon = e.features[0].properties.camp_end_lon
+                const camp_end_lat = e.features[0].properties.camp_end_lat
+
+                start_loc[0]=camp_start_lon
+                start_loc[1]=camp_start_lat
+                end_loc[0]=camp_end_lon
+                end_loc[1]=camp_end_lat
+
+                const trip_day = e.features[0].properties.trip_day;
+                const region = e.features[0].properties.region;
+                const notes = e.features[0].properties.notes;
+                const camp_start_name = e.features[0].properties.camp_start_name;
+                const camp_end_name = e.features[0].properties.camp_end_name;
+                const distance = e.features[0].properties.distance/1000/1.6;
+                const popup_name = 'Day ' + trip_day + ':&nbsp;' + region + '<br>' 
+                                  + '&emsp;' + 'start--' + camp_start_name + '<br>' 
+                                  + '&emsp;' + 'end--' + camp_end_name + '<br>' 
+                                  + '&emsp;' + 'distance--' + Math.round(distance) + ' miles' + '<br>'
+                                  + '&emsp;' + 'notes--' + notes;
+                console.log(hoveredPolygonId, geometryType, start_loc, end_loc);
+                
+                // update feature state for chosen track
+                map.setFeatureState(
+                    { source: 'chapter-1', id: hoveredPolygonId },
+                    { hover: true }
+                );
+                
+                // update popup content and position
+                popup.setLngLat(e.lngLat).setHTML(popup_name).addTo(map);
+                
+                // add popup markers to the start and end of the chosen track
+                // store in mapMarkers array for later removal
+                const startMarker = new mapboxgl.Marker({ color: 'green' })
+                 .setLngLat(start_loc)
+                 .addTo(map);
+                 mapMarkers.push(startMarker)
+
+                const endMarker = new mapboxgl.Marker({ color: 'red' })
+                 .setLngLat(end_loc)
+                 .addTo(map);
+                 mapMarkers.push(endMarker)
+            }
+        });
+
+        // When the mouse leaves the tracks layer, update the feature state of the
+        // previously hovered feature.
+        map.on('mouseleave', 'tracks', () => {
+            if (hoveredPolygonId !== null) {
+                map.setFeatureState(
+                    { source: 'chapter-1', id: hoveredPolygonId },
+                    { hover: false }
+                );
+
+                // remove popup and markers when no longer hovering
+                popup.remove();
+                mapMarkers.forEach(marker => marker.remove());
+                mapMarkers = [];
+            }
+
+            // reset hoveredPolygonId to return to no hover (base) state
+            hoveredPolygonId = null;
+        });
+    });
+</script>
+
+</body>
+</html>
