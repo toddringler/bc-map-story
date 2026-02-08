@@ -43,19 +43,19 @@ body { margin: 0; padding: 0; }
     let mapMarkers = []
     let start_loc = [0, 0];
     let end_loc = [0, 0];
-    const popup_name = 'temp'
 
     map.on('load', () => {
-        map.addSource('chapter-1', {
+        map.addSource('track-source', {
             'type': 'geojson',
-            'data': 'full-track-2025.geojson'
+            'data': 'full-track-2025.geojson',
+            'promoteId': 'id'
         });
 
         // add tracks and allow for hover effects to color, opacity, and width
         map.addLayer({
             'id': 'tracks',
             'type': 'line',
-            'source': 'chapter-1',
+            'source': 'track-source',
             'layout': {},
             'paint': {
                 'line-color': [
@@ -73,7 +73,7 @@ body { margin: 0; padding: 0; }
                 'line-width': [
                     'case',
                     ['boolean', ['feature-state', 'hover'], false],
-                    8,
+                    9,
                     5
                 ]
             }
@@ -93,11 +93,17 @@ body { margin: 0; padding: 0; }
             if (e.features.length > 0) {
                 if (hoveredPolygonId !== null) {
                     map.setFeatureState(
-                        { source: 'chapter-1', id: hoveredPolygonId },
+                        { source: 'track-source', id: hoveredPolygonId },
                         { hover: false }
                     );
                 }
-                hoveredPolygonId = e.features[0].id;
+
+                const featureId = e.features[0].id ?? e.features[0].properties?.id;
+                if (featureId === null || featureId === undefined) {
+                    return;
+                }
+
+                hoveredPolygonId = featureId;
 
                 // determine if feature is MultiLineString or LineString
                 const geometryType = e.features[0].geometry.type;
@@ -128,7 +134,7 @@ body { margin: 0; padding: 0; }
                 
                 // update feature state for chosen track
                 map.setFeatureState(
-                    { source: 'chapter-1', id: hoveredPolygonId },
+                    { source: 'track-source', id: hoveredPolygonId },
                     { hover: true }
                 );
                 
@@ -137,6 +143,9 @@ body { margin: 0; padding: 0; }
                 
                 // add popup markers to the start and end of the chosen track
                 // store in mapMarkers array for later removal
+                mapMarkers.forEach(marker => marker.remove());
+                mapMarkers = [];
+
                 const startMarker = new mapboxgl.Marker({ color: 'green' })
                  .setLngLat(start_loc)
                  .addTo(map);
@@ -154,7 +163,7 @@ body { margin: 0; padding: 0; }
         map.on('mouseleave', 'tracks', () => {
             if (hoveredPolygonId !== null) {
                 map.setFeatureState(
-                    { source: 'chapter-1', id: hoveredPolygonId },
+                    { source: 'track-source', id: hoveredPolygonId },
                     { hover: false }
                 );
 
