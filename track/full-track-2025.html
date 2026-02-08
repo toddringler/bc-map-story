@@ -27,6 +27,7 @@ body { margin: 0; padding: 0; }
         background: #fff;
     }
 </style>
+<div id="info"></div>
 <div id="map"></div>
 <script>
     mapboxgl.accessToken = 'pk.eyJ1IjoidGFjby1vdmVybGFuZGVyIiwiYSI6ImNtbDhtNTV1eDA5dHYzZHBqbWEycWtpcmsifQ.XsVNuBWpw8Yti-lQ1Barlw';
@@ -37,9 +38,9 @@ body { margin: 0; padding: 0; }
         center: [-129.0, 59.0],
         zoom: 3.8
     });
-    //document.getElementById('info').innerHTML = "This is a title"
+    document.getElementById('info').innerHTML = "full track of the 2025 arctic adventure";
     let hoveredPolygonId = null;
-    let mapMarkers = []
+    let mapMarkers = [];
     let start_loc = [0, 0];
     let end_loc = [0, 0];
 
@@ -148,12 +149,12 @@ body { margin: 0; padding: 0; }
                 const startMarker = new mapboxgl.Marker({ color: 'green' })
                  .setLngLat(start_loc)
                  .addTo(map);
-                 mapMarkers.push(startMarker)
+                mapMarkers.push(startMarker);
 
                 const endMarker = new mapboxgl.Marker({ color: 'red' })
                  .setLngLat(end_loc)
                  .addTo(map);
-                 mapMarkers.push(endMarker)
+                mapMarkers.push(endMarker);
             }
         });
 
