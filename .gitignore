@@ -1,3 +1,4 @@
 *.exe
 track/*
 .DS_Store
+.vscode/*
